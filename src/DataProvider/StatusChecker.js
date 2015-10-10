@@ -9,8 +9,8 @@ var provider = {
       method: 'POST',
       data: JSON.stringify({ 'operation': 'check', 'company': Settings.option('service')}),
       type: 'json'
-      
     }, function(data) {
+      console.log(JSON.stringify(data));
       window.status.text(data.status);
       callback();
     }, function(error) {

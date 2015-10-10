@@ -38,11 +38,14 @@ function overviewDataLoaded(err) {
   overviewWindow.animateIn();
   overviewWindow.window.on('click', 'select', function() {
     // make a refresh
+    provider.loadData(overviewWindow, overviewDataLoaded);
   });
   overviewWindow.window.on('click', 'up', function() {
     // make a refresh
+    provider.loadData(overviewWindow, overviewDataLoaded);
   });
   overviewWindow.window.on('click', 'down', function() {
     // make a refresh
+    provider.loadData(overviewWindow, overviewDataLoaded);
   });
 }
