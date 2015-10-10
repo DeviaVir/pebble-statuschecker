@@ -39,12 +39,12 @@ window.window.add(window.background);
 window.window.add(window.logo);
 window.window.add(window.loadingText);
 
-window.status = createLine(25*7, 'Status:', 'Calculating', '%');
+window.status = createLine(25*7, 'Status:', 'Calculating');
 window.lines = [window.status];
 
 module.exports = window;
 
-function createLine(top, legend, value, units) {
+function createLine(top, legend, value) {
   var line = {
     legend: new UI.Text({
       text: legend,
@@ -62,28 +62,16 @@ function createLine(top, legend, value, units) {
       color: 'black',
       textAlign: 'right'
     }),
-    units: new UI.Text({
-      text: units,
-      position: new Vector2(112, top+2), 
-      size: new Vector2(30, 1),
-      font: 'gothic-24',
-      color: 'black',
-      textAlign: 'left'
-    }),
     animateTo: function(top) {
       this.legend.animate({position: this.legend.position().set(2, top+2)});
       this.value.animate({position: this.value.position().set(48, top)});
-      this.units.animate({position: this.units.position().set(112, top+2)});
     },
     text: function(text) {
-      var value = text.split(' ', 2);
-      this.value.text(value[0]);
-      this.units.text(value[1]);
+      this.value.text(text);
     }
   };
   
   window.window.add(line.legend);
-  window.window.add(line.value);    
-  window.window.add(line.units);
+  window.window.add(line.value);
   return line;
 }
