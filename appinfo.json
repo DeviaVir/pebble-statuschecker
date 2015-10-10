@@ -30,13 +30,13 @@
                 "type": "font"
             },
             {
-                "file": "images/pebble.png",
-                "name": "IMAGES_PEBBLE_PNG",
+                "file": "images/mobile_000000_70-color.png",
+                "name": "IMAGES_MOBILE_000000_70_COLOR_PNG",
                 "type": "png"
             },
             {
-                "file": "images/mobile_000000_70-color.png",
-                "name": "IMAGES_MOBILE_000000_70_COLOR_PNG",
+                "file": "images/pebble.png",
+                "name": "IMAGES_PEBBLE_PNG",
                 "type": "png"
             },
             {
