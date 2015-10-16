@@ -1,5 +1,5 @@
-var UI = require('ui');
-var Vector2 = require('vector2');
+var UI = require('../ui');
+var Vector2 = require('../lib/vector2');
 var current_watch = require('WatchInfo.js');
 
 var ErrorWindow = {
@@ -10,7 +10,7 @@ var ErrorWindow = {
     backgroundColor: (current_watch.platform == "basalt" ? 'darkCandyAppleRed' : 'white')
   }),
   image: new UI.Image({
-    image: 'images/mobile_ffffff_70.png',
+    image: 'images/exclamation.png',
     position: new Vector2(37,37), 
     size: new Vector2(70, 70),
     compositing: (current_watch.platform == "basalt" ? 'set' : 'clear')

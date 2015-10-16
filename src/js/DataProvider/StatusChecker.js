@@ -1,8 +1,8 @@
-var ajax = require('ajax');
-var UI = require('ui');
-var Vector2 = require('vector2');
+var ajax = require('../lib/ajax');
+var UI = require('../ui');
+var Vector2 = require('../lib/vector2');
 
-var Settings = require('settings');
+var Settings = require('../settings');
 
 var colorType = 'bw';
 if(Settings.option('color') === true) {
@@ -54,9 +54,9 @@ var provider = {
         }
         loading.window.hide();
         callback();
-      }, function(error, s) {
-        console.log('Error loading data', error, s);
-        //loading.window.hide();
+      }, function(error) {
+        console.log('Error loading data', error);
+        loading.window.hide();
         callback(error);
       });
     }

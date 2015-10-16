@@ -1,4 +1,5 @@
 var current_watch;
+console.log('Pebble.getActiveWatchInfo', Pebble.getActiveWatchInfo);
 if(Pebble.getActiveWatchInfo) {
   try {
     current_watch = Pebble.getActiveWatchInfo();

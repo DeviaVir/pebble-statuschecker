@@ -1,5 +1,5 @@
-var UI = require('ui');
-var Vector2 = require('vector2');
+var UI = require('../ui');
+var Vector2 = require('../lib/vector2');
         
 var window = {
   window: new UI.Window({}),
