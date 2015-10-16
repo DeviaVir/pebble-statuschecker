@@ -10,11 +10,11 @@ if(Settings.option('color') === true) {
 }
 
 var provider = {
-  loadData: function(loading, window, callback) {
-    if(Settings.option('service')) {
-      var sn     = Settings.option('service').split('/')[2],
+  loadData: function(sn, loading, window, callback) {
+    if(sn) {
+      var ajaxData = JSON.stringify({ 'operation': 'check', 'company': sn}),
           imgUrl = 'http://settings.pebble.sillevis.net/img/color/' + sn + (colorType === 'color' ? '~color' : '') + '.png#width:70';
-      
+           
       var windowLogo = new UI.Image({
         position: new Vector2(40,40), 
         size: new Vector2(70, 18),
@@ -28,12 +28,15 @@ var provider = {
       window.window.hide();
       
       loading.window.show();
+      
+      console.log('Executing ajax!', sn, ajaxData);
       ajax({
         url: 'https://om7glvbki1.execute-api.eu-west-1.amazonaws.com/prod/statusAPI',
         method: 'POST',
-        data: JSON.stringify({ 'operation': 'check', 'company': Settings.option('service')}),
+        data: ajaxData,
         type: 'json'
       }, function(data) {
+        console.log('Response:', data);
         if(typeof data === 'object' && 'status' in data && data.status) {
           window.status.text(data.status);
           
@@ -51,9 +54,9 @@ var provider = {
         }
         loading.window.hide();
         callback();
-      }, function(error) {
-        loading.window.hide();
-        console.log('Error loading data', error);
+      }, function(error, s) {
+        console.log('Error loading data', error, s);
+        //loading.window.hide();
         callback(error);
       });
     }

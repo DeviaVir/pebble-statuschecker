@@ -7,6 +7,8 @@ var Settings = require('settings');
 
 var provider = require('DataProvider/StatusChecker.js');
 
+var currentService = 0;
+
 console.log('Starting app', JSON.stringify(Settings.option()));
 
 // Detect colors
@@ -23,12 +25,12 @@ Pebble.addEventListener('showConfiguration', function(e) {
 Pebble.addEventListener('webviewclosed',function(e) {
   var configuration = JSON.parse(decodeURIComponent(e.response));
   console.log('Configuration window returned: ', JSON.stringify(configuration));
-  Settings.option('service', configuration.service);
-  provider.loadData(loadingWindow, overviewWindow, overviewDataLoaded);
+  Settings.option('services', configuration.services);
+  provider.loadData(Settings.option('services')[currentService], loadingWindow, overviewWindow, overviewDataLoaded);
 });
 
-if (Settings.option('service')) {
-  provider.loadData(loadingWindow, overviewWindow, overviewDataLoaded);
+if (Settings.option('services')) {
+  provider.loadData(Settings.option('services')[currentService], loadingWindow, overviewWindow, overviewDataLoaded);
 } else {
   errorWindow.window.show();
 }
@@ -38,7 +40,6 @@ function overviewDataLoaded(err) {
   if(err) {
     overviewWindow.window.hide();
     errorWindow.statusText.text('Error loading');
-    errorWindow.image.image('images/exclamation.png');
     errorWindow.window.show();
     return;
   }
@@ -54,15 +55,27 @@ function clear() {
 overviewWindow.window.on('click', 'select', function() {
   // make a refresh
   clear();
-  provider.loadData(loadingWindow, overviewWindow, overviewDataLoaded);
+  provider.loadData(Settings.option('services')[currentService], loadingWindow, overviewWindow, overviewDataLoaded);
 });
 overviewWindow.window.on('click', 'up', function() {
-  // make a refresh
+  // go up a service
   clear();
-  provider.loadData(loadingWindow, overviewWindow, overviewDataLoaded);
+  if(currentService < 1) {
+    currentService = 0;
+  }
+  else {
+    currentService--;
+  }
+  provider.loadData(Settings.option('services')[currentService], loadingWindow, overviewWindow, overviewDataLoaded);
 });
 overviewWindow.window.on('click', 'down', function() {
-  // make a refresh
+  // go down a service
   clear();
-  provider.loadData(loadingWindow, overviewWindow, overviewDataLoaded);
+  if(currentService >= Settings.option('services').length) {
+    currentService = Settings.option('services').length;
+  }
+  else {
+    currentService++;
+  }
+  provider.loadData(Settings.option('services')[currentService], loadingWindow, overviewWindow, overviewDataLoaded);
 });
