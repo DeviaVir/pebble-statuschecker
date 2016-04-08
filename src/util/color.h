@@ -9,7 +9,7 @@
 #define GColor8Clear (GColor8){.argb=GColorClearARGB8}
 #define GColor8ClearWhite (GColor8){.argb=0x3F}
 
-#ifndef PBL_COLOR
+#ifndef PBL_SDK_3
 
 static inline GColor gcolor8_get(GColor8 color) {
   switch (color.argb) {
@@ -38,6 +38,12 @@ static inline GColor8 gcolor_get8(GColor color) {
 
 static inline bool gcolor8_equal_native(GColor8 color, GColor other) {
   return (color.argb == gcolor_get8(other).argb);
+}
+
+static inline GColor8 gcolor_legible_over(GColor8 background_color) {
+  const int sum = background_color.r + background_color.g + background_color.b;
+  const int avg = sum / 3;
+  return (avg >= 2) ? GColor8Black : GColor8White;
 }
 
 #else

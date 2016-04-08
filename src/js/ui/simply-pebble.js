@@ -1,15 +1,18 @@
 var struct = require('struct');
 var util2 = require('util2');
 var myutil = require('myutil');
+var Platform = require('platform');
 var Wakeup = require('wakeup');
 var Timeline = require('timeline');
 var Resource = require('ui/resource');
 var Accel = require('ui/accel');
+var Voice = require('ui/voice');
 var ImageService = require('ui/imageservice');
 var WindowStack = require('ui/windowstack');
 var Window = require('ui/window');
 var Menu = require('ui/menu');
 var StageElement = require('ui/element');
+var Vector2 = require('vector2');
 
 var simply = require('ui/simply');
 
@@ -406,9 +409,11 @@ var CardImageTypes = [
 var CardImageType = makeArrayType(CardImageTypes);
 
 var CardStyleTypes = [
+  'classic-small',
+  'classic-large',
+  'mono',
   'small',
   'large',
-  'mono',
 ];
 
 var CardStyleType = makeArrayType(CardStyleTypes);
@@ -428,6 +433,28 @@ var LightTypes = [
 ];
 
 var LightType = makeArrayType(LightTypes);
+
+var DictationSessionStatus = [
+  null,
+  'transcriptionRejected',
+  'transcriptionRejectedWithError',
+  'systemAborted',
+  'noSpeechDetected',
+  'connectivityError',
+  'disabled',
+  'internalError',
+  'recognizerError',
+];
+// Custom Dictation Errors:
+DictationSessionStatus[64] = "sessionAlreadyInProgress";
+DictationSessionStatus[65] = "noMicrophone";
+
+var StatusBarSeparatorModeTypes = [
+  'none',
+  'dotted',
+];
+
+var StatusBarSeparatorModeType = makeArrayType(StatusBarSeparatorModeTypes);
 
 var Packet = new struct([
   ['uint16', 'type'],
@@ -501,7 +528,6 @@ var WindowPropsPacket = new struct([
   [Packet, 'packet'],
   ['uint32', 'id'],
   ['uint8', 'backgroundColor', Color],
-  ['bool', 'fullscreen', BoolType],
   ['bool', 'scrollable', BoolType],
 ]);
 
@@ -510,13 +536,21 @@ var WindowButtonConfigPacket = new struct([
   ['uint8', 'buttonMask', ButtonFlagsType],
 ]);
 
+var WindowStatusBarPacket = new struct([
+  [Packet, 'packet'],
+  ['uint8', 'backgroundColor', Color],
+  ['uint8', 'color', Color],
+  ['uint8', 'separator', StatusBarSeparatorModeType],
+  ['uint8', 'status', BoolType],
+]);
+
 var WindowActionBarPacket = new struct([
   [Packet, 'packet'],
   ['uint32', 'up', ImageType],
   ['uint32', 'select', ImageType],
   ['uint32', 'down', ImageType],
-  ['uint8', 'action', BoolType],
   ['uint8', 'backgroundColor', Color],
+  ['uint8', 'action', BoolType],
 ]);
 
 var ClickPacket = new struct([
@@ -624,6 +658,8 @@ var MenuSectionPacket = new struct([
   [Packet, 'packet'],
   ['uint16', 'section'],
   ['uint16', 'items', EnumerableType],
+  ['uint8', 'backgroundColor', Color],
+  ['uint8', 'textColor', Color],
   ['uint16', 'titleLength', EnumerableType],
   ['cstring', 'title', StringType],
 ]);
@@ -716,6 +752,7 @@ var ElementCommonPacket = new struct([
   ['uint32', 'id'],
   [GPoint, 'position', PositionType],
   [GSize, 'size', SizeType],
+  ['uint16', 'borderWidth', EnumerableType],
   ['uint8', 'backgroundColor', Color],
   ['uint8', 'borderColor', Color],
 ]);
@@ -724,6 +761,18 @@ var ElementRadiusPacket = new struct([
   [Packet, 'packet'],
   ['uint32', 'id'],
   ['uint16', 'radius', EnumerableType],
+]);
+
+var ElementAnglePacket = new struct([
+  [Packet, 'packet'],
+  ['uint32', 'id'],
+  ['uint16', 'angle', EnumerableType],
+]);
+
+var ElementAngle2Packet = new struct([
+  [Packet, 'packet'],
+  ['uint32', 'id'],
+  ['uint16', 'angle2', EnumerableType],
 ]);
 
 var ElementTextPacket = new struct([
@@ -764,6 +813,21 @@ var ElementAnimateDonePacket = new struct([
   ['uint32', 'id'],
 ]);
 
+var VoiceDictationStartPacket = new struct([
+  [Packet, 'packet'],
+  ['bool', 'enableConfirmation'],
+]);
+
+var VoiceDictationStopPacket = new struct([
+  [Packet, 'packet'],
+]);
+
+var VoiceDictationDataPacket = new struct([
+  [Packet, 'packet'],
+  ['int8', 'status'],
+  ['cstring', 'transcription'],
+]);
+
 var CommandPackets = [
   Packet,
   SegmentPacket,
@@ -779,6 +843,7 @@ var CommandPackets = [
   WindowHideEventPacket,
   WindowPropsPacket,
   WindowButtonConfigPacket,
+  WindowStatusBarPacket,
   WindowActionBarPacket,
   ClickPacket,
   LongClickPacket,
@@ -810,11 +875,16 @@ var CommandPackets = [
   ElementRemovePacket,
   ElementCommonPacket,
   ElementRadiusPacket,
+  ElementAnglePacket,
+  ElementAngle2Packet,
   ElementTextPacket,
   ElementTextStylePacket,
   ElementImagePacket,
   ElementAnimatePacket,
   ElementAnimateDonePacket,
+  VoiceDictationStartPacket,
+  VoiceDictationStopPacket,
+  VoiceDictationDataPacket,
 ];
 
 var accelAxes = [
@@ -937,7 +1007,7 @@ var PacketQueue = function() {
   this._send = this.send.bind(this);
 };
 
-PacketQueue.prototype._maxPayloadSize = 2044 - 32;
+PacketQueue.prototype._maxPayloadSize = (Platform.version() === 'aplite' ? 1024 : 2044) - 32;
 
 PacketQueue.prototype.add = function(packet) {
   var byteArray = toByteArray(packet);
@@ -1012,6 +1082,31 @@ SimplyPebble.windowButtonConfig = function(def) {
   SimplyPebble.sendPacket(WindowButtonConfigPacket.buttonMask(def));
 };
 
+var toStatusDef = function(statusDef) {
+  if (typeof statusDef === 'boolean') {
+    statusDef = { status: statusDef };
+  }
+  return statusDef;
+};
+
+SimplyPebble.windowStatusBar = function(def) {
+  var statusDef = toStatusDef(def);
+  WindowStatusBarPacket
+    .separator(statusDef.separator || 'dotted')
+    .status(typeof def === 'boolean' ? def : def.status !== false)
+    .color(statusDef.color || 'black')
+    .backgroundColor(statusDef.backgroundColor || 'white');
+  SimplyPebble.sendPacket(WindowStatusBarPacket);
+};
+
+SimplyPebble.windowStatusBarCompat = function(def) {
+  if (typeof def.fullscreen === 'boolean') {
+    SimplyPebble.windowStatusBar(!def.fullscreen);
+  } else if (def.status !== undefined) {
+    SimplyPebble.windowStatusBar(def.status);
+  }
+};
+
 var toActionDef = function(actionDef) {
   if (typeof actionDef === 'boolean') {
     actionDef = { action: actionDef };
@@ -1025,7 +1120,7 @@ SimplyPebble.windowActionBar = function(def) {
     .up(actionDef.up)
     .select(actionDef.select)
     .down(actionDef.down)
-    .action(typeof def === 'boolean' ? def : true)
+    .action(typeof def === 'boolean' ? def : def.action !== false)
     .backgroundColor(actionDef.backgroundColor || 'black');
   SimplyPebble.sendPacket(WindowActionBarPacket);
 };
@@ -1079,6 +1174,7 @@ SimplyPebble.card = function(def, clear, pushing) {
     SimplyPebble.cardClear(clear);
   }
   SimplyPebble.windowProps(def);
+  SimplyPebble.windowStatusBarCompat(def);
   if (def.action !== undefined) {
     SimplyPebble.windowActionBar(def.action);
   }
@@ -1113,6 +1209,52 @@ SimplyPebble.accelConfig = function(def) {
   SimplyPebble.sendPacket(AccelConfigPacket.prop(def));
 };
 
+SimplyPebble.voiceDictationStart = function(callback, enableConfirmation) {
+  if (Platform.version() === 'aplite') {
+    // If there is no microphone, call with an error event
+    callback({
+      'err': DictationSessionStatus[65],  // noMicrophone
+      'failed': true,
+      'transcription': null,
+    });
+    return;
+  } else if (state.dictationCallback) {
+    // If there's a transcription in progress, call with an error event
+    callback({
+      'err': DictationSessionStatus[64],  // dictationAlreadyInProgress
+      'failed': true,
+      'transcription': null,
+    });
+    return;
+  }
+
+  // Set the callback and send the packet
+  state.dictationCallback = callback;
+  SimplyPebble.sendPacket(VoiceDictationStartPacket.enableConfirmation(enableConfirmation));
+};
+
+SimplyPebble.voiceDictationStop = function() {
+  // Send the message and delete the callback
+  SimplyPebble.sendPacket(VoiceDictationStopPacket);
+  delete state.dictationCallback;
+};
+
+SimplyPebble.onVoiceData = function(packet) {
+  if (!state.dictationCallback) {
+    // Something bad happened
+    console.log("No callback specified for dictation session");
+  } else {
+    var e = {
+      'err': DictationSessionStatus[packet.status()],
+      'failed': packet.status() !== 0,
+      'transcription': packet.transcription(),
+    };
+    // Invoke and delete the callback
+    state.dictationCallback(e);
+    delete state.dictationCallback;
+  }
+};
+
 SimplyPebble.menuClear = function() {
   SimplyPebble.sendPacket(MenuClearPacket);
 };
@@ -1132,6 +1274,8 @@ SimplyPebble.menuSection = function(section, def, clear) {
   MenuSectionPacket
     .section(section)
     .items(def.items)
+    .backgroundColor(def.backgroundColor)
+    .textColor(def.textColor)
     .titleLength(def.title)
     .title(def.title);
   SimplyPebble.sendPacket(MenuSectionPacket);
@@ -1165,6 +1309,7 @@ SimplyPebble.menu = function(def, clear, pushing) {
     SimplyPebble.menuClear();
   }
   SimplyPebble.windowProps(def);
+  SimplyPebble.windowStatusBarCompat(def);
   SimplyPebble.menuProps(def);
 };
 
@@ -1176,17 +1321,41 @@ SimplyPebble.elementRemove = function(id) {
   SimplyPebble.sendPacket(ElementRemovePacket.id(id));
 };
 
+SimplyPebble.elementFrame = function(packet, def, altDef) {
+  var position = def.position || (altDef ? altDef.position : undefined);
+  var position2 = def.position2 || (altDef ? altDef.position2 : undefined);
+  var size = def.size || (altDef ? altDef.size : undefined);
+  if (position && position2) {
+    size = position2.clone().subSelf(position);
+  }
+  packet.position(position);
+  packet.size(size);
+};
+
 SimplyPebble.elementCommon = function(id, def) {
+  if ('strokeColor' in def) {
+    ElementCommonPacket.borderColor(def.strokeColor);
+  }
+  if ('strokeWidth' in def) {
+    ElementCommonPacket.borderWidth(def.strokeWidth);
+  }
+  SimplyPebble.elementFrame(ElementCommonPacket, def);
   ElementCommonPacket
     .id(id)
-    .position(def.position)
-    .size(def.size)
     .prop(def);
   SimplyPebble.sendPacket(ElementCommonPacket);
 };
 
-SimplyPebble.elementRadius = function(id, radius) {
-  SimplyPebble.sendPacket(ElementRadiusPacket.id(id).radius(radius));
+SimplyPebble.elementRadius = function(id, def) {
+  SimplyPebble.sendPacket(ElementRadiusPacket.id(id).radius(def.radius));
+};
+
+SimplyPebble.elementAngle = function(id, def) {
+  SimplyPebble.sendPacket(ElementAnglePacket.id(id).angle(def.angleStart || def.angle));
+};
+
+SimplyPebble.elementAngle2 = function(id, def) {
+  SimplyPebble.sendPacket(ElementAngle2Packet.id(id).angle2(def.angleEnd || def.angle2));
 };
 
 SimplyPebble.elementText = function(id, text, timeUnits) {
@@ -1209,10 +1378,9 @@ SimplyPebble.elementImage = function(id, image, compositing) {
 };
 
 SimplyPebble.elementAnimate = function(id, def, animateDef, duration, easing) {
+  SimplyPebble.elementFrame(ElementAnimatePacket, animateDef, def);
   ElementAnimatePacket
     .id(id)
-    .position(animateDef.position || def.position)
-    .size(animateDef.size || def.size)
     .duration(duration)
     .easing(easing);
   SimplyPebble.sendPacket(ElementAnimatePacket);
@@ -1230,15 +1398,20 @@ SimplyPebble.stageElement = function(id, type, def, index) {
   switch (type) {
     case StageElement.RectType:
     case StageElement.CircleType:
-      SimplyPebble.elementRadius(id, def.radius);
+      SimplyPebble.elementRadius(id, def);
+      break;
+    case StageElement.RadialType:
+      SimplyPebble.elementRadius(id, def);
+      SimplyPebble.elementAngle(id, def);
+      SimplyPebble.elementAngle2(id, def);
       break;
     case StageElement.TextType:
-      SimplyPebble.elementRadius(id, def.radius);
+      SimplyPebble.elementRadius(id, def);
       SimplyPebble.elementTextStyle(id, def);
       SimplyPebble.elementText(id, def.text, def.updateTimeUnits);
       break;
     case StageElement.ImageType:
-      SimplyPebble.elementRadius(id, def.radius);
+      SimplyPebble.elementRadius(id, def);
       SimplyPebble.elementImage(id, def.image, def.compositing);
       break;
   }
@@ -1253,6 +1426,7 @@ SimplyPebble.stage = function(def, clear, pushing) {
     SimplyPebble.windowShow({ type: 'window', pushing: pushing });
   }
   SimplyPebble.windowProps(def);
+  SimplyPebble.windowStatusBarCompat(def);
   if (clear !== undefined) {
     SimplyPebble.stageClear();
   }
@@ -1381,11 +1555,15 @@ SimplyPebble.onPacket = function(buffer, offset) {
     case ElementAnimateDonePacket:
       StageElement.emitAnimateDone(packet.id());
       break;
+    case VoiceDictationDataPacket:
+      SimplyPebble.onVoiceData(packet);
+      break;
   }
 };
 
 SimplyPebble.onAppMessage = function(e) {
   var data = e.payload[0];
+  
   Packet._view = toArrayBuffer(data);
 
   var offset = 0;

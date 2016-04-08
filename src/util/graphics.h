@@ -5,7 +5,7 @@
 
 #include <pebble.h>
 
-#ifndef PBL_COLOR
+#ifndef PBL_SDK_3
 
 #define GCompOpAlphaBlend GCompOpAnd
 
@@ -14,6 +14,10 @@
 #define GCompOpAlphaBlend GCompOpSet
 
 #endif
+
+static inline GPoint gpoint_neg(const GPoint a) {
+  return GPoint(-a.x, -a.y);
+}
 
 static inline GPoint gpoint_add(const GPoint a, const GPoint b) {
   return GPoint(a.x + b.x, a.y + b.y);

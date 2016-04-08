@@ -1,6 +1,7 @@
 var ajax = require('../lib/ajax');
 var UI = require('../ui');
 var Vector2 = require('../lib/vector2');
+var current_watch = require('../WatchInfo.js');
 
 var Settings = require('../settings');
 
@@ -14,12 +15,26 @@ var provider = {
     if(sn) {
       var ajaxData = JSON.stringify({ 'operation': 'check', 'company': sn}),
           imgUrl = 'http://settings.pebble.sillevis.net/img/color/' + sn + (colorType === 'color' ? '~color' : '') + '.png#width:70';
-           
+      
+      if (window.logo !== null) {
+        window.window.remove(window.logo);
+      }
       var windowLogo = new UI.Image({
         position: new Vector2(40,40), 
         size: new Vector2(70, 18),
+        backgroundColor: 'clear',
         image: imgUrl
       });
+      if(current_watch.platform === 'chalk') {
+        windowLogo = new UI.Text({
+          text: sn.replace('/status/', ''),
+          position: new Vector2(14, 50), 
+          size: new Vector2(150, 80),
+          font: 'gothic-24',
+          color: 'black',
+          textAlign: 'center'
+        });
+      }
       window.logo = windowLogo;
       window.window.add(window.logo);
       
