@@ -1,7 +1,7 @@
 ### pebble-statuschecker
 
 A pebble app designed for webops-y people that would like to check certain website statuses from their watch.
-The backend is based off of https://downdetector.com, so it's possible to add your service there and have it show up in the config of this app.
+The backend uses a clever backend to serve a list of services and their uptime.
 
 #### development
 

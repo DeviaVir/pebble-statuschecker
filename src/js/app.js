@@ -9,7 +9,7 @@ var provider = require('DataProvider/StatusChecker.js');
 var UI = require('ui');
 var Settings = require('settings');
 
-var currentService = 0, Vibe;
+var currentService = 0;
 
 console.log('Starting app', JSON.stringify(Settings.option()));
 
