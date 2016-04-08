@@ -1,3 +1,5 @@
+'use strict';
+
 var ajax = require('../lib/ajax');
 var UI = require('../ui');
 var Vector2 = require('../lib/vector2');
@@ -13,47 +15,57 @@ if(Settings.option('color') === true) {
 var provider = {
   loadData: function(sn, loading, window, callback) {
     if(sn) {
-      var ajaxData = JSON.stringify({ 'operation': 'check', 'company': sn}),
-          imgUrl = 'http://settings.pebble.sillevis.net/img/color/' + sn + (colorType === 'color' ? '~color' : '') + '.png#width:70';
+      var ajaxData = JSON.stringify({ 'operation': 'check', 'company': sn});/*,
+          imgUrl = 'http://settings.pebble.sillevis.net/img/color/' + sn + (colorType === 'color' ? '~color' : '') + '.png#width:70';*/
       
       if (window.logo !== null) {
         window.window.remove(window.logo);
       }
-      var windowLogo = new UI.Image({
+      /*var windowLogo = new UI.Image({
         position: new Vector2(40,40), 
         size: new Vector2(70, 18),
         backgroundColor: 'clear',
         image: imgUrl
-      });
+      });*/
+      var sizex = 144;
+      var sizey = 80;
+      var posx = 0;
+      var posy = 50;
       if(current_watch.platform === 'chalk') {
-        windowLogo = new UI.Text({
-          text: sn.replace('/status/', ''),
-          position: new Vector2(14, 50), 
-          size: new Vector2(150, 80),
-          font: 'gothic-24',
-          color: 'black',
-          textAlign: 'center'
-        });
+        sizex = 150;
+        posx = 14;
+        posy = 50;
       }
+      var windowLogo = new UI.Text({
+        text: sn.replace('/status/', ''),
+        position: new Vector2(posx, posy), 
+        size: new Vector2(sizex, sizey),
+        font: 'gothic-24',
+        color: 'black',
+        textAlign: 'center'
+      });
+
       window.logo = windowLogo;
       window.window.add(window.logo);
       
-      // Hack to make sure the logo actually shows..
-      window.window.show();
-      window.window.hide();
+      loading.show();
       
-      loading.window.show();
-      
-      console.log('Executing ajax!', sn, ajaxData);
+      //console.log('Executing ajax!', sn, ajaxData);
       ajax({
         url: 'https://om7glvbki1.execute-api.eu-west-1.amazonaws.com/prod/statusAPI',
         method: 'POST',
         data: ajaxData,
         type: 'json'
       }, function(data) {
-        console.log('Response:', data);
+        //console.log('Response:', data);
         if(typeof data === 'object' && 'status' in data && data.status) {
           window.status.text(data.status);
+          /*
+          // when card has better font control and image support:
+          overview.title(sn.replace('/status/', ''));
+          overview.body(data.status);
+          overview.banner(imgUrl);
+           */
           
           switch(data.status.toLowerCase()) {
             case 'ok':
@@ -67,11 +79,11 @@ var provider = {
             break;
           }
         }
-        loading.window.hide();
+        loading.hide();
         callback();
       }, function(error) {
-        console.log('Error loading data', error);
-        loading.window.hide();
+        //console.log('Error loading data', error);
+        loading.hide();
         callback(error);
       });
     }

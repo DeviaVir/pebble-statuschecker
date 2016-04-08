@@ -1,15 +1,15 @@
 'use strict';
 
-var errorWindow = require('Window/Error.js');
+var errorCard = require('Window/Error.js');
 var overviewWindow = require('Window/Overview.js');
-var loadingWindow = require('Window/Loading.js');
+var loadingCard = require('Window/Loading.js');
 var current_watch = require('WatchInfo.js');
 var provider = require('DataProvider/StatusChecker.js');
 
 var UI = require('ui');
 var Settings = require('settings');
 
-var currentService = 0;
+var currentService = 0, Vibe;
 
 console.log('Starting app', JSON.stringify(Settings.option()));
 
@@ -26,9 +26,9 @@ Pebble.addEventListener('showConfiguration', function(e) {
 
 Pebble.addEventListener('webviewclosed',function(e) {
   var configuration = JSON.parse(decodeURIComponent(e.response));
-  console.log('Configuration window returned: ', JSON.stringify(configuration));
+  //console.log('Configuration window returned: ', JSON.stringify(configuration));
   Settings.option('services', configuration.services);
-  provider.loadData(Settings.option('services')[currentService], loadingWindow, overviewWindow, overviewDataLoaded);
+  provider.loadData(Settings.option('services')[currentService], loadingCard, overviewWindow, overviewDataLoaded);
 });
 
 if (Settings.option('services')) {
@@ -52,31 +52,25 @@ if (Settings.option('services')) {
 
   resultsMenu.on('select', function(e) {
     currentService = e.itemIndex;
-    provider.loadData(Settings.option('services')[e.itemIndex], loadingWindow, overviewWindow, overviewDataLoaded);
+    provider.loadData(Settings.option('services')[e.itemIndex], loadingCard, overviewWindow, overviewDataLoaded);
   });
 } else {
-  errorWindow.window.show();
+  errorCard.show();
 }
 
 function overviewDataLoaded(err) {
   if(err) {
     overviewWindow.window.hide();
-    errorWindow.statusText.text('Error loading');
-    errorWindow.window.show();
+    errorCard.body('Error loading data, backend might be experiencing problem!');
+    errorCard.show();
   }
   else {
+    overviewWindow.window.hide();
     overviewWindow.window.show();
-    overviewWindow.animateIn();
   }
 }
 
 overviewWindow.window.on('click', 'select', function() {
   // make a refresh
-  provider.loadData(Settings.option('services')[currentService], loadingWindow, overviewWindow, overviewDataLoaded);
-});
-overviewWindow.window.on('click', 'up', function() {
-  // do nothing
-});
-overviewWindow.window.on('click', 'down', function() {
-  // do nothing
+  provider.loadData(Settings.option('services')[currentService], loadingCard, overviewWindow, overviewDataLoaded);
 });

@@ -1,3 +1,5 @@
+'use strict';
+
 var UI = require('../ui');
 var Vector2 = require('../lib/vector2');
 var current_watch = require('../WatchInfo.js');
@@ -6,11 +8,18 @@ var background = new UI.Rect({
   position: new Vector2(0,0),
   size: new Vector2(144, 168)
 });
+var sizex = 144;
+var sizey = 28;
+var posx = 0;
+var posy = 120;
 if(current_watch.platform == 'chalk') {
   background = new UI.Circle({
     position: new Vector2(89,89),
     radius: 89
   });
+  sizex = 100;
+  posx = 39;
+  posy = 120;
 }
 
 var window = {
@@ -19,7 +28,15 @@ var window = {
   }),
   background: background,
   lines: [],
-  logo: null/*,
+  logo: null,
+  status: new UI.Text({
+    text: '',
+    position: new Vector2(posx, posy), 
+    size: new Vector2(sizex, sizey),
+    font: 'gothic-24-bold',
+    color: 'black',
+    textAlign: 'center'
+  })/*,
   animateIn: function() {
     // Animate logo up
     this.logo.animate({ position: this.logo.position().set(40, 30) }, 400);
@@ -31,34 +48,23 @@ var window = {
 };
 
 window.window.add(window.background);
-
-var top = 25*8;
-if(current_watch.platform === 'chalk') {
-  top = 120;
-}
-window.status = createLine('');
-window.lines = [window.status];
+window.window.add(window.status);
 
 module.exports = window;
 
-function createLine(value) {
-  var line = {
-    value: new UI.Text({
-      text: value,
-      position: new Vector2(39, top), 
-      size: new Vector2(100, 28),
-      font: 'gothic-24-bold',
-      color: 'black',
-      textAlign: 'center'
-    }),
-    /*animateTo: function(top) {
-      this.value.animate({position: this.value.position().set(40, top)});
-    },*/
-    text: function(text) {
-      this.value.text(text);
-    }
-  };
-  
-  window.window.add(line.value);
-  return line;
-}
+
+/*
+
+// For when cards have better control over font-size and images:
+'use strict';
+var UI = require('../ui');
+var card = new UI.Card({
+  style: 'large',
+  scrollable: true,
+  bodyColor: 'white',
+  subtitleColor: 'white',
+  titleColor: 'white'
+});
+module.exports = card;
+
+ */
