@@ -67,16 +67,18 @@ var provider = {
           overview.banner(imgUrl);
            */
           
-          switch(data.status.toLowerCase()) {
-            case 'ok':
-              window.background.backgroundColor('green');
-            break;
-            case 'warning':
-              window.background.backgroundColor('orange');
-            break;
-            case 'down':
-              window.background.backgroundColor('red');
-            break;
+          if(current_watch.platform !== 'aplite') {
+            switch(data.status.toLowerCase()) {
+              case 'ok':
+                window.background.backgroundColor('green');
+              break;
+              case 'warning':
+                window.background.backgroundColor('orange');
+              break;
+              case 'down':
+                window.background.backgroundColor('red');
+              break;
+            }
           }
         }
         loading.hide();
